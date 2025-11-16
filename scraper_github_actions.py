@@ -21,7 +21,10 @@ def scrape_dtek():
         page = context.new_page()
         
         page.goto(url, wait_until='networkidle')
-        page.wait_for_timeout(3000)
+
+        page.wait_for_function("typeof DisconSchedule !== 'undefined' && DisconSchedule.fact")
+        page.wait_for_timeout(1000)
+        
         html = page.content()
         
         browser.close()
