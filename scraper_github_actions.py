@@ -3,27 +3,33 @@ import json
 import re
 import os
 from datetime import datetime
+import requests
 
 url = "https://www.dtek-dnem.com.ua/ua/shutdowns"
 BROWSERLESS_TOKEN = os.getenv("BROWSERLESS_TOKEN", "")
 
 def scrape_dtek():
-    with sync_playwright() as p:
-        # Use Browserless.io to bypass bot protection
-        browserless_url = f"wss://production-sfo.browserless.io/chromium/playwright?token={BROWSERLESS_TOKEN}&stealth=true"
-        print(f"[{datetime.now()}] Connecting to Browserless.io...")
-        browser = p.chromium.connect(browserless_url)
-        context = browser.new_context(
-            viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    # Try using Browserless.io REST API with content endpoint (different IP pool)
+    print(f"[{datetime.now()}] Using Browserless.io REST API...")
+    try:
+        browserless_api = f"https://production-sfo.browserless.io/content?token={BROWSERLESS_TOKEN}"
+        response = requests.post(
+            browserless_api,
+            json={
+                "url": url,
+                "gotoOptions": {
+                    "waitUntil": "networkidle"
+                },
+                "waitFor": 3000,
+                "stealth": True,
+                "blockAds": True
+            },
+            timeout=60
         )
-        page = context.new_page()
-
-        print(f"[{datetime.now()}] Scraping DTEK data...")
-        page.goto(url, wait_until='networkidle', timeout=30000)
-        page.wait_for_timeout(3000)
-        html = page.content()
-        browser.close()
+        html = response.text
+        print(f"[{datetime.now()}] Got response from Browserless.io")
+    except Exception as e:
+        print(f"❌ Browserless.io failed: {e}")
 
     if 'Incapsula' in html or 'incident_id' in html:
         print("❌ Bot protection detected! HTML preview:")
