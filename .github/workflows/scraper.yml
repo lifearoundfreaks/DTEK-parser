@@ -34,4 +34,24 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git add dtek_data.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "⚡ Update DTEK data - $(date -u +"%Y-%m-%d %H:%M UTC")" && git push origin data)
+          
+          # Check if there are changes
+          if ! git diff --staged --quiet; then
+            TODAY=$(date -u +"%Y-%m-%d")
+            LAST_COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+            
+            # Check if last commit is from today
+            if echo "$LAST_COMMIT_MSG" | grep -q "$TODAY"; then
+              # Same day - amend the commit
+              git commit --amend -m "⚡ DTEK data - $TODAY"
+              git push --force origin data
+              echo "✓ Amended today's commit"
+            else
+              # New day - create new commit
+              git commit -m "⚡ DTEK data - $TODAY"
+              git push origin data
+              echo "✓ Created new commit for $TODAY"
+            fi
+          else
+            echo "No changes detected, skipping commit"
+          fi
