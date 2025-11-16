@@ -2,7 +2,7 @@ name: DTEK Scraper
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Run every 10 minutes
+    - cron: '*0 * * * *'  # Run every hour
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
@@ -27,13 +27,15 @@ jobs:
           playwright install chromium --with-deps
       
       - name: Run scraper
+        env:
+          BROWSERLESS_TOKEN: ${{ secrets.BROWSERLESS_TOKEN }}
         run: python scraper_github_actions.py
       
       - name: Commit and push to data branch
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-          git add dtek_data.json
+          git add -A
           
           # Check if there are changes
           if ! git diff --staged --quiet; then

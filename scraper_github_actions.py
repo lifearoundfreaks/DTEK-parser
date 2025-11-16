@@ -1,24 +1,23 @@
 from playwright.sync_api import sync_playwright
 import json
 import re
+import os
 from datetime import datetime
 
 url = "https://www.dtek-dnem.com.ua/ua/shutdowns"
+BROWSERLESS_TOKEN = os.getenv("BROWSERLESS_TOKEN", "")
 
 def scrape_dtek():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # Use Browserless.io to bypass bot protection
+        browserless_url = f"wss://production-sfo.browserless.io/chromium/playwright?token={BROWSERLESS_TOKEN}&stealth=true"
+        print(f"[{datetime.now()}] Connecting to Browserless.io...")
+        browser = p.chromium.connect(browserless_url)
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
         page = context.new_page()
-
-        # Add stealth script to avoid detection
-        page.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-        """)
 
         print(f"[{datetime.now()}] Scraping DTEK data...")
         page.goto(url, wait_until='networkidle', timeout=30000)
